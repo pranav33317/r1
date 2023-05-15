@@ -18,6 +18,7 @@ R6=["0"]*16
 FLAGS=["0"]*16
 variables={}
 f=open("textfile.txt")
+f2=open("outfile.txt","w+")
 L1=f.readlines()
 L2=[]
 labels={}
@@ -25,7 +26,9 @@ labels={}
 variables_list=[]
 write_list=[]
 print(L1)
-assert len(L1)<129,"Instructions exceed memory limit"
+if len(L1)>128:
+    f2.write("Instructions exceed memory limit")
+    exit()
 var_flag=0
 for i in range(len(L1)):
     if L1[i]=="\n":
@@ -39,14 +42,20 @@ for i in range(len(L1)):
             if var_flag==0:
                 variables_list.append(((L1[i].strip()).split())[1])
             else:
-                assert var_flag==0,"Variable not declared at start"
+                f2.write("Variable not declared at start in line number"+str(i))
+                exit()
         elif ((L1[i]).strip()).split()[0] in operations:
             var_flag=1
             L2.append((L1[i].strip()).split())
-        else:
-            assert ((L1[i]).strip()).split()[0][-1]==":" or ((L1[i]).strip()).split()[0] in operations or ((L1[i]).strip()).split()[0]=="var","Keyword not recognised"
-assert ["hlt"] in L2,"Halt missing"
-assert L2[-1][0]=="hlt","Halt must be last instruction" 
+        elif ((L1[i]).strip()).split()[0][-1]!=":" or ((L1[i]).strip()).split()[0] not in operations or ((L1[i]).strip()).split()[0]!="var":
+            f2.write("Keyword not recognized")
+            exit()
+if ["hlt"] not in L2:
+    f2.write("Halt missing")
+    exit()
+if L2[-1][0]!="hlt":
+    f2.write("Halt must be last instruction")
+    exit()
 variables_list.append("")
 for i in range(len(variables_list)):
     L2.append("")
@@ -54,18 +63,26 @@ for i in range(len(variables_list)):
     variables[variables_list[i]]=L2.index(variables_list[i])
 L2.pop(len(L2)-1)
 print(L2)
-assert len(L2)<129,"Memory limit exceeded"
+if len(L2)>128:
+    f2.write("Memory limit exceeded")
+    exit()
 print(labels)
 for i in range(len(L2)):
-    assert L2[i][0] in operations,"Typo in operation"
+    if L2[i][0] not in operations:
+        f2.write("Typo in operation at line number"+str(i))
+        exit()
     if L2[i][0]=="hlt":
         write_list.append(operations[L2[i][0]]+("0"*11))
         break
     elif L2[i][0]=="jmp":
         temp=i
         if L2[i][1] in variables_list:
-            assert L2[i][1] in labels,"Variable used as label"
-        assert L2[i][1] in list(labels.keys()),"Undefined label used"
+            if L2[i][1] not in labels:
+                f2.write("Variable used as label at line number"+str(i))
+                exit()
+        if L2[i][1] not in list(labels.keys()):
+            f2.write("Undefined label used at line number"+str(i))
+            exit()
         num=int(labels[L2[i][1]])
         i=num
         write_list.append(operations[L2[temp][0]]+("0"*4)+labels[L2[temp][1]])
@@ -73,8 +90,12 @@ for i in range(len(L2)):
     elif L2[i][0]=="jlt":
         temp=i
         if L2[i][1] in variables_list:
-            assert L2[i][1] in labels,"Variable used as label"
-        assert L2[i][1] in labels,"Undefined label used"
+            if L2[i][1] not in labels:
+                f2.write("Variable used as label at line number"+str(i))
+                exit()
+        if L2[i][1] not in list(labels.keys()):
+            f2.write("Undefined label used at line number"+str(i))
+            exit()
         if FLAGS[13]=="1":
             num=int(labels[L2[i][1]])
             i=num
@@ -84,8 +105,12 @@ for i in range(len(L2)):
     elif L2[i][0]=="jgt":
         temp=i
         if L2[i][1] in variables_list:
-            assert L2[i][1] in labels,"Variable used as label"
-        assert L2[i][1] in labels,"Undefined label used"
+            if L2[i][1] not in labels:
+                f2.write("Variable used as label at line number"+str(i))
+                exit()
+        if L2[i][1] not in labels:
+            f2.write("Undefined label used at line number"+str(i))
+            exit()
         if FLAGS[14]=="1":
             num=int(labels[L2[i][1]])
             i=num
@@ -95,8 +120,12 @@ for i in range(len(L2)):
     elif L2[i][0]=="je":
         temp=i
         if L2[i][1] in variables_list:
-            assert L2[i][1] in labels,"Variable used as label"
-        assert L2[i][1] in labels,"Undefined label used"
+            if L2[i][1] not in labels:
+                f2.write("Variable used as label at line number"+str(i))
+                exit()
+        if L2[i][1] not in labels:
+            f2.write("Undefined label used at line number"+str(i))
+            exit()
         if FLAGS[15]=="1":
             num=int(labels[L2[i][1]])
             i=num
@@ -107,8 +136,12 @@ for i in range(len(L2)):
         str1=eval(L2[i][1])
         str2=eval(L2[i][2])
         str3=eval(L2[i][3])
-        assert L2[i][1] in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         str1eval=""
         str2eval=""
         str3eval=""
@@ -150,10 +183,18 @@ for i in range(len(L2)):
     elif L2[i][0]=="cmp":
         str1=eval(L2[i][1])
         str2=eval(L2[i][2])
-        assert L2[i][1] in registers,"Typo in register name"
-        assert L2[i][2] in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
-        assert str2 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if L2[i][2] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
+        if str2 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         str1eval=""
         str2eval=""
         for j in str1:
@@ -173,10 +214,18 @@ for i in range(len(L2)):
     elif L2[i][0]=="not":
         str1=eval(L2[i][1])
         str2=eval(L2[i][2])
-        assert str1 in registers,"Typo in register name"
-        assert str2 in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
-        assert str2 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if L2[i][2] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
+        if str2 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         str2eval=""
         for i in str2:
             str2eval+=i
@@ -191,10 +240,16 @@ for i in range(len(L2)):
         write_list.append("\n")
     elif L2[i][0]=="rs":
         str1=eval(L2[i][1])
-        assert str1 in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         num1=int(L2[i][2])
-        assert num1<128,"Illegal immediate value"
+        if num1>127:
+            f2.write("Illegal immediate value at line number"+str(i))
+            exit()
         num1val=str(format(num1,f'0{7}b'))
         num1val=list(num1val)
         str1[7:16]=str1[0:9]
@@ -206,10 +261,16 @@ for i in range(len(L2)):
         write_list.append("\n")
     elif L2[i][0]=="ls":
         str1=eval(L2[i][1])
-        assert str1 in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         num1=int(L2[i][2])
-        assert num1<128,"Illegal immediate value"
+        if num1>127:
+            f2.write("Illegal immediate value at line number"+str(i))
+            exit()
         num1val=str(format(num1,f'0{7}b'))
         num1val=list(num1val)
         str1[0:9]=str1[7:16]
@@ -222,10 +283,18 @@ for i in range(len(L2)):
     elif L2[i][0]=="div":
         str1=eval(L2[i][1])
         str2=eval(L2[i][2])
-        assert str1 in registers,"Typo in register name"
-        assert str2 in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
-        assert str2 is not FLAGS,"Illegal use of FLAGS register"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if L2[i][2] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
+        if str2 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
         str1eval=""
         str2eval=""
         for i in str1:
@@ -258,18 +327,30 @@ for i in range(len(L2)):
         if L2[i][2] in list(registers.keys()):
             str1=eval(L2[i][1])
             str2=eval(L2[i][2])
-            assert L2[i][1] in registers,"Typo in register name"
-            assert L2[i][2] in registers,"Typo in register name"
-            assert str1 is not FLAGS,"Illegal use of FLAGS register"
+            if L2[i][1] not in registers:
+                f2.write("Typo in register name at line number"+str(i))
+                exit()
+            if L2[i][2] not in registers:
+                f2.write("Typo in register name at line number"+str(i))
+                exit()
+            if str1 is FLAGS:
+                f2.write("Illegal use of FLAGS register at line number"+str(i))
+                exit()
             str1=str2.copy()
             write_list.append(operations[(L2[i][0]+"reg")]+("0"*5)+registers[str(L2[i][1])]+registers[str(L2[i][2])])
             write_list.append("\n")
         else:
             str1=eval(L2[i][1])
-            assert L2[i][1] in registers,"Typo in register name"
-            assert str1 is not FLAGS,"Illegal use of FLAGS register"
+            if L2[i][1] not in registers:
+                f2.write("Typo in register name at line number"+str(i))
+                exit()
+            if str1 is FLAGS:
+                f2.write("Illegal use of FLAGS register at line number"+str(i))
+                exit()
             num=int(L2[i][2][1:])
-            assert num<128,"Illegal immediate value"
+            if num>127:
+                f2.write("Illegal immediate value at line number"+str(i))
+                exit()
             num_bin=str(format(num,f'0{7}b'))
             num_bin=list(num_bin)
             str1[9:]=num_bin
@@ -280,12 +361,21 @@ for i in range(len(L2)):
             write_list.append("\n")
     elif L2[i][0]=="ld":
         str1=eval(L2[i][1])
-        assert L2[i][1] in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
-        num2=variables[L2[i][2]]
-        if num2 in labels:
-            assert L2[i][2] in variables,"Label used as variable"
-        assert L2[i][2] in list(variables.keys()),"Undefined variable used"
+        if L2[i][1] not in registers:
+                f2.write("Typo in register name at line number"+str(i))
+                exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
+        try:
+            num2=variables[L2[i][2]]
+        except:
+            if L2[i][2] in labels:
+                f2.write("Label used in place of variable")
+                exit()
+            else:
+                f2.write("Undefined variable used")
+                exit()
         #value=L2[num2]
         value_bin=str(format(num2,f'0{7}b'))
         #value_bin=list(value_bin)
@@ -294,12 +384,21 @@ for i in range(len(L2)):
         write_list.append("\n")
     elif L2[i][0]=="st":
         str1=eval(L2[i][1])
-        assert L2[i][1] in registers,"Typo in register name"
-        assert str1 is not FLAGS,"Illegal use of FLAGS register"
-        num2=variables[L2[i][2]]
-        if num2 in labels:
-            assert L2[i][2] in variables,"Label used as variable"
-        assert L2[i][2] in list(variables.keys()),"Undefined variable used"
+        if L2[i][1] not in registers:
+            f2.write("Typo in register name at line number"+str(i))
+            exit()
+        if str1 is FLAGS:
+            f2.write("Illegal use of FLAGS register at line number"+str(i))
+            exit()
+        try:
+            num2=variables[L2[i][2]]
+        except:
+            if L2[i][2] in labels:
+                f2.write("Label used in place of variable")
+                exit()
+            else:
+                f2.write("Undefined variable used")
+                exit()
         #value=L2[num2]
         #str1eval=""
         #for i in str1:
@@ -310,6 +409,5 @@ for i in range(len(L2)):
         write_list.append(operations[L2[i][0]]+"0"+registers[str(L2[i][1])]+str(value_bin))
         write_list.append("\n")
 f.close()
-f2=open("outfile.txt","w+")
 f2.writelines(write_list)
 f2.close()
